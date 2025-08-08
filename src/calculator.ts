@@ -1,16 +1,19 @@
-import readline from 'readline';
+import * as readline from 'readline';
+import * as process from 'process';
 
-const rl = readline.createInterface({
+const rl: readline.Interface = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
+
 console.log("Welcome to TechieNg's Calculator\n");
-const calculate = () => {
+
+const calculate = (): void => {
   rl.question(
     'Select operation:\n1. Add\n2. Subtract\n3. Multiply\n4. Divide\n5. Exit \n6.Enter Math Expression e.g (2 + 3 * 4)\nEnter choice (1-6):',
-    (input) => {
-      validateChoice(input);
-      const choice = parseInt(input);
+    (input: unknown) => {
+      validateChoice(input as number);
+      const choice = parseInt(input as string);
 
       if (choice === 5) {
         rl.close();
@@ -24,14 +27,15 @@ const calculate = () => {
 };
 calculate();
 
-const validateChoice = (choice) => {
+const validateChoice = (choice: number): void => {
   if (isNaN(choice) || choice < 1 || choice > 6) {
     console.log('Error: Invalid input, please select a number between 1 and 5');
     calculate();
   }
 };
-const evaluateMathExpression = () => {
-  rl.question('Enter the math expression: ', (expression) => {
+
+const evaluateMathExpression = (): void => {
+  rl.question('Enter the math expression: ', (expression: string) => {
     /* Tokenize input: numbers, operators, parentheses
 return an array similar to the one below
   ['3', ' ', '/', ' ', '4',
@@ -43,25 +47,34 @@ return an array similar to the one below
     const tokens =
       expression.match(/\d+\.?\d*|[+\-*/()]|\s+/g)?.filter(Boolean) || [];
     const outputQueue = [];
-    const operatorStack = [];
+    const operatorStack: Array<string> = [];
     const precedence = operatorPrecedenceMap;
     const associativity = { '+': 'L', '-': 'L', '*': 'L', '/': 'L' };
     //for each token in the array of token, if the token is a number then we push it to the output queue else we apply the operator precedence and associativity rules to the operator stack
-
     for (const token of tokens) {
       if (/^\d/.test(token)) {
         outputQueue.push(token);
       } else if (token in precedence) {
         //if the token is an operator, we pop operators from the operator stack to the output queue until the operator stack is empty or the operator at the top of the stack has lower precedence or the operator at the top of the stack is a left associative operator and the current operator has lower precedence
         while (
-          operatorStack.length &&
-          operatorStack[operatorStack.length - 1] in precedence &&
-          ((associativity[token] === 'L' &&
-            precedence[token] <=
-              precedence[operatorStack[operatorStack.length - 1]]) ||
-            (associativity[token] === 'R' &&
-              precedence[token] <
-                precedence[operatorStack[operatorStack.length - 1]]))
+          operatorStack.length > 0 &&
+          (operatorStack[
+            (operatorStack?.length - 1) as number
+          ] as keyof typeof precedence) in precedence &&
+          ((associativity[token as keyof typeof associativity] === 'L' &&
+            precedence[token as keyof typeof precedence] <=
+              precedence[
+                operatorStack[
+                  operatorStack.length - 1
+                ] as keyof typeof precedence
+              ]) ||
+            (associativity[token as keyof typeof associativity] === 'R' &&
+              precedence[token as keyof typeof precedence] <
+                precedence[
+                  operatorStack[
+                    operatorStack.length - 1
+                  ] as keyof typeof precedence
+                ]))
         ) {
           outputQueue.push(operatorStack.pop());
         }
@@ -85,11 +98,13 @@ return an array similar to the one below
     }
 
     //for each token in the output queue, if the token is a number then we push it to the stack else we pop two numbers from the stack and apply the operator to the two numbers and push the result back to the stack
-    const stack = [];
+    const stack: number[] = [];
     for (const token of outputQueue) {
-      if (/^\d/.test(token)) {
+      if (/^\d/.test(token as string)) {
         stack.push(Number(token));
-      } else if (token in symbolFunctionMap) {
+      } else if (
+        (token as keyof typeof symbolFunctionMap) in symbolFunctionMap
+      ) {
         const b = stack.pop();
         const a = stack.pop();
         if (a === undefined || b === undefined) {
@@ -97,7 +112,9 @@ return an array similar to the one below
           rl.close();
           return;
         }
-        stack.push(symbolFunctionMap[token](a, b));
+        stack.push(
+          symbolFunctionMap[token as keyof typeof symbolFunctionMap](a, b)
+        );
       }
     }
     //if the stack has only one element, then we have a valid expression and we print the result else we have an invalid expression and we log an error
@@ -110,16 +127,16 @@ return an array similar to the one below
   });
 };
 // function to get inputs
-const getFirstNumber = (choice) => {
-  rl.question('Enter the first number: ', (a) => {
-    if (isNaN(a)) {
+const getFirstNumber = (choice: number): void => {
+  rl.question('Enter the first number: ', (a: string | number) => {
+    if (isNaN(a as number)) {
       console.log('Error: Invalid input, please enter a number');
       // if is not a number recursively request for input
       getFirstNumber(choice);
     } else {
-      const getSecondNumber = () => {
-        rl.question('Enter the second number: ', (b) => {
-          if (isNaN(b)) {
+      const getSecondNumber = (): void => {
+        rl.question('Enter the second number: ', (b: string | number) => {
+          if (isNaN(b as number)) {
             console.log('Error: Invalid input, please enter a number');
             // if is not a number recursively request for input
             return getSecondNumber();
@@ -129,7 +146,10 @@ const getFirstNumber = (choice) => {
 
             return getSecondNumber();
           } else {
-            getFunction[choice](a, b);
+            getFunction[choice as keyof typeof getFunction](
+              Number(a),
+              Number(b)
+            );
             rl.close();
           }
         });
@@ -140,28 +160,53 @@ const getFirstNumber = (choice) => {
 };
 
 // addition function
-const add = (a, b) => {
+/**
+ * Performs addition of two numbers
+ * @param a - First number
+ * @param b - Second number
+ * @returns The sum of a and b
+ */
+const add = (a: number, b: number): number => {
   console.log(`The sum of ${a} and ${b} is ${Number(a) + Number(b)}`);
   return Number(a) + Number(b);
 };
 //Subtraction function
-const subtract = (a, b) => {
+/**
+ * Performs addition of two numbers
+ * @param a - First number
+ * @param b - Second number
+ * @returns The difference of a and b
+ */
+const subtract = (a: number, b: number): number => {
   console.log(`The difference of ${a} and ${b} is ${a - b}`);
   return Number(a) - Number(b);
 };
 //multiplication function
-const multiply = (a, b) => {
+/**
+ * Performs addition of two numbers
+ * @param a - First number
+ * @param b - Second number
+ * @returns The product of a and b
+ */
+const multiply = (a: number, b: number): number => {
   console.log(`The product of ${a} and ${b} is ${a * b}`);
   return Number(a) * Number(b);
 };
 
 // Division function
-const divide = (a, b) => {
+/**
+ * Performs addition of two numbers
+ * @param a - First number
+ * @param b - Second number
+ * @returns The quotient of a and b
+ */
+const divide = (a: number, b: number): number => {
   console.log(`The quotient of ${a} and ${b} is ${a / b}`);
   return Number(a) / Number(b);
 };
 
 // object map for operations to make selection easier and reduce boiler plate
+
 const getFunction = {
   1: add,
   2: subtract,
