@@ -1,6 +1,16 @@
 import * as readline from 'readline';
 import * as process from 'process';
 
+interface GetFunction {
+  [key: number]: (a: number, b: number) => number;
+}
+interface SymbolFunctionMap {
+  [key: string]: (a: number, b: number) => number;
+}
+interface OperatorPrecedenceMap {
+  [key: string]: number;
+}
+
 const rl: readline.Interface = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
@@ -29,7 +39,8 @@ calculate();
 
 const validateChoice = (choice: number): void => {
   if (isNaN(choice) || choice < 1 || choice > 6) {
-    console.log('Error: Invalid input, please select a number between 1 and 5');
+    console.log('Error: Invalid input, please select a number between 1 and 6');
+    console.log('Type error: Invalid input, please select a number between 1 and 6');
     calculate();
   }
 };
@@ -56,25 +67,18 @@ return an array similar to the one below
         outputQueue.push(token);
       } else if (token in precedence) {
         //if the token is an operator, we pop operators from the operator stack to the output queue until the operator stack is empty or the operator at the top of the stack has lower precedence or the operator at the top of the stack is a left associative operator and the current operator has lower precedence
+        const topOperator = operatorStack[operatorStack.length - 1];
         while (
           operatorStack.length > 0 &&
           (operatorStack[
             (operatorStack?.length - 1) as number
           ] as keyof typeof precedence) in precedence &&
           ((associativity[token as keyof typeof associativity] === 'L' &&
-            precedence[token as keyof typeof precedence] <=
-              precedence[
-                operatorStack[
-                  operatorStack.length - 1
-                ] as keyof typeof precedence
-              ]) ||
+            precedence[token as keyof typeof precedence]! <=
+            precedence[topOperator! as keyof typeof precedence]!) ||
             (associativity[token as keyof typeof associativity] === 'R' &&
-              precedence[token as keyof typeof precedence] <
-                precedence[
-                  operatorStack[
-                    operatorStack.length - 1
-                  ] as keyof typeof precedence
-                ]))
+              precedence[token as keyof typeof precedence]! <
+              precedence[topOperator as keyof typeof precedence]!))
         ) {
           outputQueue.push(operatorStack.pop());
         }
@@ -102,9 +106,7 @@ return an array similar to the one below
     for (const token of outputQueue) {
       if (/^\d/.test(token as string)) {
         stack.push(Number(token));
-      } else if (
-        (token as keyof typeof symbolFunctionMap) in symbolFunctionMap
-      ) {
+      } else if ((token as string) in symbolFunctionMap) {
         const b = stack.pop();
         const a = stack.pop();
         if (a === undefined || b === undefined) {
@@ -112,9 +114,7 @@ return an array similar to the one below
           rl.close();
           return;
         }
-        stack.push(
-          symbolFunctionMap[token as keyof typeof symbolFunctionMap](a, b)
-        );
+        stack.push(symbolFunctionMap[token as unknown as number]!(a, b));
       }
     }
     //if the stack has only one element, then we have a valid expression and we print the result else we have an invalid expression and we log an error
@@ -142,11 +142,11 @@ const getFirstNumber = (choice: number): void => {
             return getSecondNumber();
           } else if (choice === 4 && Number(b) === 0) {
             // if is entered number is 0 and operation is division , log error and  recursively request for input
-            console.log('Error: Division by zero');
+            console.log('TYPE ERROR: Division by zero');
 
             return getSecondNumber();
           } else {
-            getFunction[choice as keyof typeof getFunction](
+            getFunction[choice as keyof typeof getFunction]!(
               Number(a),
               Number(b)
             );
@@ -172,7 +172,7 @@ const add = (a: number, b: number): number => {
 };
 //Subtraction function
 /**
- * Performs addition of two numbers
+ * Performs subtraction of two numbers
  * @param a - First number
  * @param b - Second number
  * @returns The difference of a and b
@@ -183,7 +183,7 @@ const subtract = (a: number, b: number): number => {
 };
 //multiplication function
 /**
- * Performs addition of two numbers
+ * Performs multiplication of two numbers
  * @param a - First number
  * @param b - Second number
  * @returns The product of a and b
@@ -195,7 +195,7 @@ const multiply = (a: number, b: number): number => {
 
 // Division function
 /**
- * Performs addition of two numbers
+ * Performs division of one number by another
  * @param a - First number
  * @param b - Second number
  * @returns The quotient of a and b
@@ -206,8 +206,7 @@ const divide = (a: number, b: number): number => {
 };
 
 // object map for operations to make selection easier and reduce boiler plate
-
-const getFunction = {
+const getFunction: GetFunction = {
   1: add,
   2: subtract,
   3: multiply,
@@ -215,14 +214,14 @@ const getFunction = {
 };
 
 // helper object to map symbols to their respective function for expression evaluation
-const symbolFunctionMap = {
+const symbolFunctionMap: SymbolFunctionMap = {
   '+': add,
   '-': subtract,
   '*': multiply,
   '/': divide,
 };
 // helper object to map symbols to their order of precedence
-const operatorPrecedenceMap = {
+const operatorPrecedenceMap: OperatorPrecedenceMap = {
   '+': 1,
   '-': 1,
   '*': 2,
